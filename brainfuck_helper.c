@@ -1,8 +1,14 @@
 #include "brainfuck_helper.h"
 #include <stdio.h>
+#include <string.h>
 
 
-
+void afficher_tableau(char* tableau, int taille) {
+    for (int i = 0; i < taille; i++) {
+        printf("%c", tableau[i]);
+    }
+    printf("\n"); // Nouvelle ligne après l'affichage du tableau complet
+}
 // refaire sans realloc a chaque fois 
 // faire un talbeau de taille 100 et rajouter 100 si on dépasse
 char* get_input_prog(char* input_filename)
@@ -16,19 +22,25 @@ char* get_input_prog(char* input_filename)
         perror("erreur lors de l'ouverture du fichier");
         return NULL;
     }
+    
     char car;
-    int taille_tab = 0;
+    int taille_tab = 1;
     car = fgetc(fichier);
     if (car != EOF)
     {
-        tableau[taille_tab] = (char)car;
+        tableau[taille_tab-1] = (char)car;
     }
     while((car = fgetc(fichier))!= EOF)
     {   
-        taille_tab++;
-        tableau = realloc(tableau,taille_tab*sizeof(char));
-        tableau[taille_tab]=(char)car;
+        if (car != '\n'){
+            taille_tab++;
+            tableau = realloc(tableau,taille_tab*sizeof(char));
+            tableau[taille_tab-1]=(char)car;
+        }
+       
     }
+    fclose(fichier);
+    afficher_tableau(tableau, taille_tab);
     return tableau;
 }
 
@@ -36,81 +48,88 @@ void free_input_prog(char* input_prog){
     free(input_prog);
 }
 
-void* build_loops(char* input_prog){
-    int* pile = (int*)malloc(strlen(input_prog) * sizeof(int)); // On alloue la pile 
-    if (pile == NULL) {
-        fprintf(stderr, "Erreur : impossible d'allouer de la mémoire pour la pile des boucles.\n");
-        exit(EXIT_FAILURE);
+void* build_loops(char* input_prog) {
+    int num_brackets = 0;
+
+    // on compte le nombre de crochets ouvrants pour savoir la taille de la pile
+    for (int i = 0; input_prog[i] != '\0' ; i++) {
+        if (input_prog[i] == '[') {
+            num_brackets++;
+        }
     }
-    *pile = -1; // On initialise la pile
-    return pile;
+    // on alloue la pile 
+    int* loop_stack = (int*)malloc(num_brackets * sizeof(int));
+
+    return loop_stack;
 }
 
 void free_loops(void* loops){
     free(loops);
 }
 
-void execute_instruction(char** ipp, uint8_t** dpp, int* loops){
-    char* inst = *ipp; // le tableau d'instructions
-    char* vals = *dpp; // le tableau de valeurs;
-    while(*inst != '\0'){
-        switch(*inst){
+void execute_instruction(char** ipp, uint8_t** dpp, void* loops){
+    int stack_top = -1; // le sommet de la pile
+    int* loop_stack = (int*)loops; // la pile des boucles
+    // ** : valeur, * : addresse
+    while(**ipp != '\0')
+    {
+        switch(**ipp)
+        {
             case '>':
-                vals++; // on décale a droite le pointeur
+                *dpp++; // on décale a droite le pointeur
                 break;
             case '<':
-                vals--; // on decale a gauche le pointeur
+                *dpp--; // on decale a gauche le pointeur
                 break;
             case '+':
-                (*vals)++; // on incrémente la valeur pointée
+                **dpp++; // on incrémente la valeur pointée
                 break;
             case '-':
-                (*vals)--; // on décrémente la valeur pointée
+                **dpp--; // on décrémente la valeur pointée
                 break;
             case '.':
-                putchar(*vals); // affiche le caractère qui correspond au code ascii de la valeur pointée
+                putchar(**dpp); // affiche le caractère qui correspond au code ascii de la valeur pointée
                 break;
             case ',':
-                *vals = getchar();
+                **dpp = getchar();
                 break;
             case '[':
-                if (*vals == 0) {
-                    int depth = 1;
-                    int pc = inst;     // on fait une copie du pointeur d'instruction
-                    while (depth != 0) { // on cherche la pos du ']' correspondant dans les instructions
-                        pc++;
-                        if (inst[pc] == '[') {
-                            depth++;
-                        } else if (inst[pc] == ']') {
-                            depth--;
+                if (**dpp == 0) 
+                {
+
+                    if (*dpp == 0) {
+                    int loop_count = 1;
+                    while (loop_count != 0) {
+                        ipp++;
+                        if (*ipp == '[') {
+                            loop_count++;
+                        } else if (*ipp == ']') {
+                            loop_count--;
                         }
+                        // on va a l'instruction ] correspondante
                     }
-                    // on va l'instruction pc
-                    inst = pc;
-                } else {
-                    // on empile l'addresse de l'instruction '['
-                    loops++;
-                    *loops = inst;
+                }
+                else
+                {
+                    // on empile l'index du crochet ouvrant '['
+                    stack_top++;
+                    loop_stack[stack_top] = *ipp;
                 }
                 break;
-                break;
             case ']':
-                if (**dpp != 0){
-                    int cpt = 1;
-                    while (cpt != 0){
-                        (*ipp)--;
-                        if (**ipp == ']'){
-                            cpt++;
-                        }
-                        if (**ipp == '['){
-                            cpt--;
-                        }
-                    }
+                if (**dpp != 0)
+                {
+                    // on depile le [ de la pile correspondant (le dernier element de la pile)
+                    loop_stack[stack_top] = '\0';
+                    stack_top--;
+                } else {
+                    // Sinon, retourner à l'index du crochet ouvrant '[' correspondant
+                    *ipp = loop_stack[stack_top];
+                    // on ne dépile pas mais on reviens a l'adresse du crochet ouvrant
+                } 
                 }
                 break;
         }
-        (*ipp)++;
-
-        ipp++; // on prend l'instruction suivante
+        *ipp++; // instruction suivante
     }
 }
