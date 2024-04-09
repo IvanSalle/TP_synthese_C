@@ -21,7 +21,6 @@ int main(int argc, char **argv) {
     }
 
     char* input_prog = get_input_prog(argv[1]);
-    printf("get_input_ok\n");
     char* ip = input_prog;
     if (ip == NULL) {
         printf("Le fichier Brainfuck passé en paramètre n'existe pas dans le répertoire courant\n");

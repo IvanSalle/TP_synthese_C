@@ -58,7 +58,7 @@ void* build_loops(char* input_prog) {
         }
     }
     // on alloue la pile 
-    int* loop_stack = (int*)malloc(num_brackets * sizeof(int));
+    char** loop_stack = (char**)malloc(num_brackets * sizeof(char*));
 
     return loop_stack;
 }
@@ -69,67 +69,82 @@ void free_loops(void* loops){
 
 void execute_instruction(char** ipp, uint8_t** dpp, void* loops){
     int stack_top = -1; // le sommet de la pile
-    int* loop_stack = (int*)loops; // la pile des boucles
+    char** loop_stack = (char**)loops; // la pile des boucles
     // ** : valeur, * : addresse
     while(**ipp != '\0')
     {
         switch(**ipp)
         {
             case '>':
-                *dpp++; // on décale a droite le pointeur
+                (*dpp)++; // on décale a droite le pointeur
                 break;
             case '<':
-                *dpp--; // on decale a gauche le pointeur
+                (*dpp)--; // on decale a gauche le pointeur
                 break;
             case '+':
-                **dpp++; // on incrémente la valeur pointée
+                (*(*dpp))++; // on incrémente la valeur pointée
                 break;
             case '-':
-                **dpp--; // on décrémente la valeur pointée
+                (*(*dpp))--; // on décrémente la valeur pointée
                 break;
             case '.':
+                // afficher la valeur de **dpp 
                 putchar(**dpp); // affiche le caractère qui correspond au code ascii de la valeur pointée
                 break;
             case ',':
-                **dpp = getchar();
+                (**dpp) = getchar();
                 break;
             case '[':
-                if (**dpp == 0) 
+                if ((**dpp) == 0) 
                 {
-
-                    if (*dpp == 0) {
                     int loop_count = 1;
-                    while (loop_count != 0) {
-                        ipp++;
-                        if (*ipp == '[') {
+                    while (loop_count != 0) 
+                    {
+                        (*ipp)++;
+                        if (**ipp == '[') {
                             loop_count++;
-                        } else if (*ipp == ']') {
+                        } 
+                        else if (**ipp == ']') 
+                        {
                             loop_count--;
                         }
-                        // on va a l'instruction ] correspondante
                     }
                 }
                 else
-                {
-                    // on empile l'index du crochet ouvrant '['
+                {   
                     stack_top++;
                     loop_stack[stack_top] = *ipp;
+
                 }
+
                 break;
             case ']':
-                if (**dpp != 0)
-                {
-                    // on depile le [ de la pile correspondant (le dernier element de la pile)
-                    loop_stack[stack_top] = '\0';
-                    stack_top--;
-                } else {
-                    // Sinon, retourner à l'index du crochet ouvrant '[' correspondant
-                    *ipp = loop_stack[stack_top];
-                    // on ne dépile pas mais on reviens a l'adresse du crochet ouvrant
+                if ((*(*dpp)) != 0)
+                {   
+                    if (stack_top >= 0) {
+                        // Retourner à l'index du crochet ouvrant '[' correspondant
+                        (*ipp) = loop_stack[stack_top];
+                        (*ipp)--; // pour compenser l'incrémentation de la boucle while
+                        // On dépile
+                        stack_top--;
+                    } else {
+                        // Gérer le cas où la pile est vide
+                        printf("La pile est vide, impossible de dépiler.\n");
+                        // Faire quelque chose en conséquence, comme sortir de la fonction ou afficher un message d'erreur
+                    }
+
                 } 
+                else {
+                    // on depile le [ de la pile correspondant (le dernier element de la pile)
+                    loop_stack[stack_top] = 0;
+                    stack_top--;
                 }
                 break;
+            default:
+                printf("caractere non reconnu \n");
+                exit(EXIT_FAILURE);
+                break;
         }
-        *ipp++; // instruction suivante
+        (*ipp)++; // instruction suivante
     }
 }
