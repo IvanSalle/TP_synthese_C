@@ -3,12 +3,7 @@
 #include <string.h>
 
 
-void afficher_tableau(char* tableau, int taille) {
-    for (int i = 0; i < taille; i++) {
-        printf("%c", tableau[i]);
-    }
-    printf("\n"); // Nouvelle ligne après l'affichage du tableau complet
-}
+
 // refaire sans realloc a chaque fois 
 // faire un talbeau de taille 100 et rajouter 100 si on dépasse
 char* get_input_prog(char* input_filename)
@@ -40,7 +35,6 @@ char* get_input_prog(char* input_filename)
        
     }
     fclose(fichier);
-    afficher_tableau(tableau, taille_tab);
     return tableau;
 }
 

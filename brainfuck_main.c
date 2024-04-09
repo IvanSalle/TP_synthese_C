@@ -30,11 +30,7 @@ int main(int argc, char **argv) {
     void* loops = build_loops(ip);
     uint8_t* data_array = calloc(DATA_ARRAY_SIZE, sizeof(uint8_t));
     uint8_t* dp = data_array;
-    size_t instruction_id = 0;
-    while (*ip != '\0') {
-        instruction_id++;
-        execute_instruction(&ip, &dp, loops);
-    }
+    execute_instruction(&ip, &dp, loops);
     free(data_array);
     free_loops(loops);
     free_input_prog(input_prog);
